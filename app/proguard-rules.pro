@@ -1,0 +1,4 @@
+-keep class com.fossyfriend.fossyweather.data.remote.dto.** { *; }
+-keepattributes *Annotation*
+-keepclassmembers class kotlinx.serialization.json.** { *; }
+-dontwarn org.osmdroid.**
