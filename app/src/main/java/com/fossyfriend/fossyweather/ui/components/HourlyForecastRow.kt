@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.WaterDrop
@@ -70,36 +69,64 @@ fun SectionCard(
     modifier: Modifier = Modifier,
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    shape: androidx.compose.ui.graphics.Shape = MaterialTheme.shapes.extraLarge,
+    containerColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surface,
+    elevation: CardElevation = CardDefaults.cardElevation(),
+    isOutlined: Boolean = true,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth().let { m ->
-            if (onClick != null) m.clickable(onClick = onClick) else m
-        },
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    trailing?.invoke()
-                    if (onClick != null) {
-                        Icon(
-                            Icons.Filled.ChevronRight,
-                            contentDescription = "Open details",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+    val cardModifier = modifier.fillMaxWidth().let { m ->
+        if (onClick != null) m.clickable(onClick = onClick) else m
+    }
+
+    if (isOutlined) {
+        OutlinedCard(
+            modifier = cardModifier,
+            shape = shape,
+            colors = CardDefaults.outlinedCardColors(containerColor = containerColor),
+            border = CardDefaults.outlinedCardBorder(enabled = true),
+            elevation = elevation
+        ) {
+            SectionContent(title, trailing, onClick, content)
+        }
+    } else {
+        Card(
+            modifier = cardModifier,
+            shape = shape,
+            colors = CardDefaults.cardColors(containerColor = containerColor),
+            elevation = elevation
+        ) {
+            SectionContent(title, trailing, onClick, content)
+        }
+    }
+}
+
+@Composable
+private fun SectionContent(
+    title: String,
+    trailing: (@Composable () -> Unit)?,
+    onClick: (() -> Unit)?,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(Modifier.padding(20.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                trailing?.invoke()
+                if (onClick != null) {
+                    Icon(
+                        Icons.Filled.ChevronRight,
+                        contentDescription = "Open details",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-            Spacer(Modifier.height(14.dp))
-            content()
         }
+        Spacer(Modifier.height(14.dp))
+        content()
     }
 }

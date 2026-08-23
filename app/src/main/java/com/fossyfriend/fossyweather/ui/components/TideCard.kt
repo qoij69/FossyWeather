@@ -17,7 +17,14 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun TideCard(marine: List<MarinePoint>, isCoastal: Boolean, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
-    SectionCard(title = "Tide & Sea", modifier = modifier, onClick = onClick) {
+    SectionCard(
+        title = "Tide & Sea",
+        modifier = modifier,
+        onClick = onClick,
+        isOutlined = false,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        shape = MaterialTheme.shapes.large
+    ) {
         if (!isCoastal || marine.isEmpty()) {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Icon(Icons.Filled.Waves, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)

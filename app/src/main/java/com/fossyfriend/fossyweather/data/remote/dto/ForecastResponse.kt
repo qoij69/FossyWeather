@@ -29,7 +29,8 @@ data class CurrentBlock(
     @SerialName("wind_direction_10m") val windDirection: Int,
     @SerialName("wind_gusts_10m") val windGusts: Double,
     @SerialName("uv_index") val uvIndex: Double? = null,
-    val visibility: Double? = null
+    val visibility: Double? = null,
+    @SerialName("dew_point_2m") val dewPoint: Double? = null
 )
 
 @Serializable
@@ -43,7 +44,8 @@ data class HourlyBlock(
     @SerialName("uv_index") val uvIndex: List<Double> = emptyList(),
     @SerialName("relative_humidity_2m") val humidity: List<Int> = emptyList(),
     @SerialName("wind_speed_10m") val windSpeed: List<Double> = emptyList(),
-    @SerialName("cloud_cover") val cloudCover: List<Int> = emptyList()
+    @SerialName("cloud_cover") val cloudCover: List<Int> = emptyList(),
+    @SerialName("dew_point_2m") val dewPoint: List<Double> = emptyList()
 )
 
 @Serializable

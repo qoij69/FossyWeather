@@ -32,7 +32,7 @@ fun isoToTimeLabel(iso: String): String = try {
 } catch (e: DateTimeParseException) { iso }
 
 fun isoDateToDayLabel(isoDate: String): String = try {
-    java.time.LocalDate.parse(isoDate).format(dayFormatter)
+    java.time.LocalDate.parse(isoDate).format(dayFormatter).replace("Sun", "S☀️n")
 } catch (e: Exception) { isoDate }
 
 fun isoDateToFullLabel(isoDate: String): String = try {

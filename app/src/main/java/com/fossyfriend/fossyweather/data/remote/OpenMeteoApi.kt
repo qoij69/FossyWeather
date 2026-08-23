@@ -35,17 +35,26 @@ interface OpenMeteoApi {
         @Query("forecast_days") forecastDays: Int = 3
     ): MarineResponse
 
+    @GET("v1/air-quality")
+    suspend fun getAirQuality(
+        @Query("latitude") latitude: Double,
+        @Query("longitude") longitude: Double,
+        @Query("current") current: String = "us_aqi,pm2_5,pm10",
+        @Query("timezone") timezone: String = "auto"
+    ): com.fossyfriend.fossyweather.data.remote.dto.AirQualityResponse
+
     companion object {
         const val BASE_URL = "https://api.open-meteo.com/"
         const val MARINE_BASE_URL = "https://marine-api.open-meteo.com/"
         const val GEOCODING_BASE_URL = "https://geocoding-api.open-meteo.com/"
+        const val AIR_QUALITY_BASE_URL = "https://air-quality-api.open-meteo.com/"
 
         private const val CURRENT_FIELDS = "temperature_2m,relative_humidity_2m,apparent_temperature," +
             "is_day,precipitation,weather_code,cloud_cover,pressure_msl,surface_pressure," +
-            "wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,visibility"
+            "wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,visibility,dew_point_2m"
 
         private const val HOURLY_FIELDS = "temperature_2m,precipitation_probability,weather_code," +
-            "pressure_msl,visibility,uv_index,relative_humidity_2m,wind_speed_10m,cloud_cover"
+            "pressure_msl,visibility,uv_index,relative_humidity_2m,wind_speed_10m,cloud_cover,dew_point_2m"
 
         private const val DAILY_FIELDS = "weather_code,temperature_2m_max,temperature_2m_min," +
             "sunrise,sunset,uv_index_max,precipitation_probability_max,wind_speed_10m_max,precipitation_sum"

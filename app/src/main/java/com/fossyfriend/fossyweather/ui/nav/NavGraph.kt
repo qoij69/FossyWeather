@@ -59,7 +59,8 @@ private val popExitAnim = fadeOut(tween(ANIM_DURATION)) + slideOutHorizontally(t
 @Composable
 fun FossyWeatherNavGraph(
     viewModel: WeatherViewModel,
-    onRequestLocationPermission: () -> Unit
+    onRequestLocationPermission: () -> Unit,
+    onRequestNotificationPermission: () -> Unit
 ) {
     val navController: NavHostController = rememberNavController()
     var lastBundle by remember { mutableStateOf<WeatherBundle?>(null) }
@@ -166,8 +167,8 @@ fun FossyWeatherNavGraph(
                         DetailRow("Precipitation", "${"%.1f".format(day.precipitationSum)} mm"),
                         DetailRow("Max wind", "${day.windSpeedMax.roundToInt()} km/h"),
                         DetailRow("Max UV index", "${day.uvIndexMax.roundToInt()}"),
-                        DetailRow("Sunrise", isoToTimeLabel(day.sunrise)),
-                        DetailRow("Sunset", isoToTimeLabel(day.sunset))
+                        DetailRow("S☀️nrise", isoToTimeLabel(day.sunrise)),
+                        DetailRow("S☀️nset", isoToTimeLabel(day.sunset))
                     ),
                     onBack = { navController.popBackStack() }
                 )
@@ -185,7 +186,11 @@ fun FossyWeatherNavGraph(
             }
         }
         composable(Routes.SETTINGS) {
-            SettingsScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+            SettingsScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onRequestNotificationPermission = onRequestNotificationPermission
+            )
         }
         composable(Routes.PRESSURE) {
             val bundle = lastBundle

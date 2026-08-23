@@ -61,6 +61,8 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     val showMoonCard: StateFlow<Boolean> = prefs.showMoonCard.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val showRadarByDefault: StateFlow<Boolean> = prefs.showRadarByDefault.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val notificationsEnabled: StateFlow<Boolean> = prefs.notificationsEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val notifRefusalCount: StateFlow<Int> = prefs.notifRefusalCount.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+    val hasShownWelcomeNotification: StateFlow<Boolean> = prefs.hasShownWelcomeNotification.stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     // Saved locations
     val savedLocations: StateFlow<List<PlaceResult>> = prefs.savedLocations.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -167,6 +169,9 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     fun setShowMoonCard(enabled: Boolean) = viewModelScope.launch { prefs.setShowMoonCard(enabled) }
     fun setShowRadarByDefault(enabled: Boolean) = viewModelScope.launch { prefs.setShowRadarByDefault(enabled) }
     fun setNotificationsEnabled(enabled: Boolean) = viewModelScope.launch { prefs.setNotificationsEnabled(enabled) }
+    fun incrementNotifRefusalCount() = viewModelScope.launch { prefs.incrementNotifRefusalCount() }
+    fun resetNotifRefusalCount() = viewModelScope.launch { prefs.resetNotifRefusalCount() }
+    fun markWelcomeNotificationShown() = viewModelScope.launch { prefs.setHasShownWelcomeNotification(true) }
 
     fun setWidgetShowLocation(enabled: Boolean) = viewModelScope.launch { prefs.setWidgetShowLocation(enabled) }
     fun setWidgetShowHumidity(enabled: Boolean) = viewModelScope.launch { prefs.setWidgetShowHumidity(enabled) }

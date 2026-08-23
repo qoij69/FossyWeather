@@ -4,7 +4,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +33,14 @@ fun CurrentWeatherCard(
     onClick: (() -> Unit)? = null
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "weather_icon_pulse")
+    
+    val alertText = when {
+        current.uvIndex >= 8 -> "Very High UV"
+        current.windSpeed >= 50 -> "High Wind"
+        current.humidity <= 20 -> "Very Dry"
+        else -> null
+    }
+
     val iconScale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.08f,
@@ -52,7 +61,7 @@ fun CurrentWeatherCard(
         label = "card_drift"
     )
 
-    Card(
+    ElevatedCard(
         modifier = modifier.fillMaxWidth()
             .graphicsLayer {
                 translationY = cardDrift
@@ -61,12 +70,36 @@ fun CurrentWeatherCard(
             .let { m ->
                 if (onClick != null) m.clickable(onClick = onClick) else m
             },
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
-        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp))) {
+        Box(modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge)) {
             WeatherAnimation(weatherCode = current.weatherCode)
+            
+            if (alertText != null) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp),
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.Warning, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(alertText, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

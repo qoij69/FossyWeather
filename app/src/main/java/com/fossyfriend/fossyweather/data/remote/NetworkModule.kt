@@ -39,4 +39,8 @@ object NetworkModule {
     val geocodingApi: GeocodingApi by lazy {
         retrofit(OpenMeteoApi.GEOCODING_BASE_URL).create(GeocodingApi::class.java)
     }
+
+    val airQualityApi: OpenMeteoApi by lazy {
+        retrofit(OpenMeteoApi.AIR_QUALITY_BASE_URL).create(OpenMeteoApi::class.java)
+    }
 }

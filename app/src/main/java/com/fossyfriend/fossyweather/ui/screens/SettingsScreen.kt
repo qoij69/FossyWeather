@@ -3,6 +3,8 @@ package com.fossyfriend.fossyweather.ui.screens
 import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.fossyfriend.fossyweather.data.prefs.*
 import com.fossyfriend.fossyweather.util.ShareUtils
 import com.fossyfriend.fossyweather.viewmodel.WeatherViewModel
+import kotlinx.coroutines.launch
 
 private data class SettingsTab(val title: String, val icon: ImageVector)
 private val tabs = listOf(
@@ -44,8 +47,13 @@ private val tabs = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: WeatherViewModel, onBack: () -> Unit) {
-    var selectedTab by remember { mutableStateOf(0) }
+fun SettingsScreen(
+    viewModel: WeatherViewModel,
+    onBack: () -> Unit,
+    onRequestNotificationPermission: () -> Unit
+) {
+    val pagerState = rememberPagerState(pageCount = { tabs.size })
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -58,11 +66,15 @@ fun SettingsScreen(viewModel: WeatherViewModel, onBack: () -> Unit) {
                         }
                     }
                 )
-                ScrollableTabRow(selectedTabIndex = selectedTab, edgePadding = 16.dp) {
+                ScrollableTabRow(selectedTabIndex = pagerState.currentPage, edgePadding = 16.dp) {
                     tabs.forEachIndexed { index, tab ->
                         Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
+                            selected = pagerState.currentPage == index,
+                            onClick = { 
+                                scope.launch {
+                                    pagerState.animateScrollToPage(index)
+                                }
+                            },
                             text = { Text(tab.title) },
                             icon = { Icon(tab.icon, contentDescription = null) }
                         )
@@ -72,13 +84,19 @@ fun SettingsScreen(viewModel: WeatherViewModel, onBack: () -> Unit) {
         }
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
-            when (selectedTab) {
-                0 -> GeneralTab(viewModel)
-                1 -> UnitsTab(viewModel)
-                2 -> DisplayTab(viewModel)
-                3 -> WidgetsTab(viewModel)
-                4 -> NotificationsTab(viewModel)
-                5 -> AboutTab()
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.Top
+            ) { page ->
+                when (page) {
+                    0 -> GeneralTab(viewModel)
+                    1 -> UnitsTab(viewModel)
+                    2 -> DisplayTab(viewModel)
+                    3 -> WidgetsTab(viewModel)
+                    4 -> NotificationsTab(viewModel, onRequestNotificationPermission)
+                    5 -> AboutTab()
+                }
             }
         }
     }
@@ -95,7 +113,7 @@ private fun GeneralTab(viewModel: WeatherViewModel) {
         item {
             SettingsSection(title = "Home screen cards") {
                 SwitchRow("Tide & Sea card", "Hide this for inland locations", showTide) { viewModel.setShowTideCard(it) }
-                SwitchRow("Sun & Moon card", "Sunrise/sunset and moon phase", showMoon) { viewModel.setShowMoonCard(it) }
+                SwitchRow("S☀️n & Moon card", "S☀️nrise/s☀️nset and moon phase", showMoon) { viewModel.setShowMoonCard(it) }
             }
         }
         item {
@@ -251,8 +269,13 @@ private fun WidgetsTab(viewModel: WeatherViewModel) {
 }
 
 @Composable
-private fun NotificationsTab(viewModel: WeatherViewModel) {
+private fun NotificationsTab(
+    viewModel: WeatherViewModel,
+    onRequestNotificationPermission: () -> Unit
+) {
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
+    val notifRefusalCount by viewModel.notifRefusalCount.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     SettingsList {
         item {
@@ -262,12 +285,53 @@ private fun NotificationsTab(viewModel: WeatherViewModel) {
                     "A morning summary notification (requires POST_NOTIFICATIONS permission at runtime on Android 13+)",
                     notificationsEnabled
                 ) { viewModel.setNotificationsEnabled(it) }
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { com.fossyfriend.fossyweather.util.NotificationHelper.showTestNotification(context) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Filled.Notifications, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Send test notification")
+                }
+            }
+        }
+        item {
+            SettingsSection(title = "Permissions") {
                 Text(
-                    "This toggle stores the preference; wiring it to an actual WorkManager notification job is the next step for a full alerts feature.",
-                    style = MaterialTheme.typography.labelSmall,
+                    "If notifications are blocked in system settings or you refused permissions twice, the app stops asking automatically. You can manually enable them in system settings or try the prompt again below.",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { ShareUtils.openAppSettings(context) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                ) {
+                    Icon(Icons.Filled.Settings, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Open System App Info")
+                }
+                Spacer(Modifier.height(8.dp))
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    OutlinedButton(
+                        onClick = onRequestNotificationPermission,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Try Permission Prompt")
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+                TextButton(
+                    onClick = { viewModel.resetNotifRefusalCount() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Reset prompt counter ($notifRefusalCount)")
+                }
             }
         }
     }
@@ -341,7 +405,7 @@ private fun AboutTab() {
                 }
                 Spacer(Modifier.height(16.dp))
                 CreditLink(Icons.Filled.Email, "Email", "qoij69@gmail.com") { uriHandler.openUri("mailto:qoij69@gmail.com") }
-                CreditLink(Icons.Filled.Code, "GitHub", "View source code") { uriHandler.openUri("https://github.com/qoij/FossyWeather") }
+                CreditLink(Icons.Filled.Code, "GitHub", "View source code") { uriHandler.openUri("https://github.com/qoij69/FossyWeather") }
                 CreditLink(Icons.Filled.MusicNote, "TikTok", "@techbyqoij69") { uriHandler.openUri("https://www.tiktok.com/@techbyqoij69") }
                 CreditLink(Icons.Filled.PlayArrow, "YouTube", "@qoij69") { uriHandler.openUri("https://www.youtube.com/@qoij69") }
             }

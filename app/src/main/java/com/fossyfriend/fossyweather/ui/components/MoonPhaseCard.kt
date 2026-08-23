@@ -2,8 +2,7 @@ package com.fossyfriend.fossyweather.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,7 +16,15 @@ import kotlin.math.roundToInt
 
 @Composable
 fun MoonPhaseCard(moon: MoonPhaseInfo, sunrise: String, sunset: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
-    SectionCard(title = "Sun & Moon", modifier = modifier, onClick = onClick) {
+    SectionCard(
+        title = "S☀️n & Moon",
+        modifier = modifier,
+        onClick = onClick,
+        isOutlined = false,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = MaterialTheme.shapes.extraLarge,
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             MoonDisc(illumination = moon.illuminationPercent, waxing = moon.ageDays < 14.77, modifier = Modifier.size(64.dp))
             Spacer(Modifier.width(16.dp))
@@ -33,8 +40,8 @@ fun MoonPhaseCard(moon: MoonPhaseInfo, sunrise: String, sunset: String, modifier
         }
         Spacer(Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            SunTimeColumn(label = "Sunrise", timeIso = sunrise)
-            SunTimeColumn(label = "Sunset", timeIso = sunset)
+            SunTimeColumn(label = "S☀️nrise", timeIso = sunrise)
+            SunTimeColumn(label = "S☀️nset", timeIso = sunset)
         }
     }
 }

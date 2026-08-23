@@ -3,6 +3,7 @@ package com.fossyfriend.fossyweather.data.prefs
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -41,6 +42,8 @@ class UserPreferences(private val context: Context) {
         val LAST_LON = stringPreferencesKey("last_lon")
         val LAST_NAME = stringPreferencesKey("last_name")
         val SAVED_LOCATIONS = stringPreferencesKey("saved_locations")
+        val NOTIF_REFUSAL_COUNT = intPreferencesKey("notif_refusal_count")
+        val HAS_SHOWN_WELCOME = booleanPreferencesKey("has_shown_welcome_notif")
 
         // Widget settings
         val WIDGET_SHOW_LOCATION = booleanPreferencesKey("widget_show_location")
@@ -93,6 +96,9 @@ class UserPreferences(private val context: Context) {
             runCatching { Json.decodeFromString<List<PlaceResult>>(json) }.getOrDefault(emptyList())
         } else emptyList()
     }
+
+    val notifRefusalCount: Flow<Int> = context.dataStore.data.map { it[Keys.NOTIF_REFUSAL_COUNT] ?: 0 }
+    val hasShownWelcomeNotification: Flow<Boolean> = context.dataStore.data.map { it[Keys.HAS_SHOWN_WELCOME] ?: false }
 
     val widgetShowLocation: Flow<Boolean> = context.dataStore.data.map { it[Keys.WIDGET_SHOW_LOCATION] ?: true }
     val widgetShowHumidity: Flow<Boolean> = context.dataStore.data.map { it[Keys.WIDGET_SHOW_HUMIDITY] ?: false }
@@ -171,6 +177,21 @@ class UserPreferences(private val context: Context) {
             val updated = current.filterNot { it.id == id }
             p[Keys.SAVED_LOCATIONS] = Json.encodeToString(updated)
         }
+    }
+
+    suspend fun incrementNotifRefusalCount() {
+        context.dataStore.edit { p ->
+            val current = p[Keys.NOTIF_REFUSAL_COUNT] ?: 0
+            p[Keys.NOTIF_REFUSAL_COUNT] = current + 1
+        }
+    }
+
+    suspend fun resetNotifRefusalCount() {
+        context.dataStore.edit { it[Keys.NOTIF_REFUSAL_COUNT] = 0 }
+    }
+
+    suspend fun setHasShownWelcomeNotification(shown: Boolean) {
+        context.dataStore.edit { it[Keys.HAS_SHOWN_WELCOME] = shown }
     }
 
     suspend fun setWidgetShowLocation(enabled: Boolean) {

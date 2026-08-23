@@ -21,7 +21,13 @@ fun PressureTrendCard(hours: List<HourForecast>, currentPressure: Double, modifi
     if (next24.isEmpty()) return
     val trend = PressureAnalyzer.trend(next24.first().pressureMsl, next24.last().pressureMsl)
 
-    SectionCard(title = "Pressure", modifier = modifier, onClick = onClick) {
+    SectionCard(
+        title = "Pressure",
+        modifier = modifier,
+        onClick = onClick,
+        shape = MaterialTheme.shapes.large,
+        containerColor = MaterialTheme.colorScheme.surfaceVariant
+    ) {
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Text("${currentPressure.roundToInt()} hPa", style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.width(12.dp))

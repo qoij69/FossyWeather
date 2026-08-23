@@ -10,6 +10,7 @@ class WeatherRepository {
     private val weatherApi = NetworkModule.weatherApi
     private val marineApi = NetworkModule.marineApi
     private val geocodingApi = NetworkModule.geocodingApi
+    private val airQualityApi = NetworkModule.airQualityApi
 
     suspend fun searchPlaces(query: String): List<PlaceResult> {
         if (query.isBlank()) return emptyList()
@@ -40,9 +41,13 @@ class WeatherRepository {
         val marineDeferred = async {
             runCatching { marineApi.getMarine(latitude, longitude) }.getOrNull()
         }
+        val airQualityDeferred = async {
+            runCatching { airQualityApi.getAirQuality(latitude, longitude) }.getOrNull()
+        }
 
         val forecast = forecastDeferred.await()
         val marineResp = marineDeferred.await()
+        val airQualityResp = airQualityDeferred.await()
 
         val current = forecast.current!!
         val currentWeather = CurrentWeather(
@@ -58,7 +63,9 @@ class WeatherRepository {
             windDirection = current.windDirection,
             windGusts = current.windGusts,
             uvIndex = current.uvIndex ?: 0.0,
-            visibilityMeters = current.visibility ?: 0.0
+            visibilityMeters = current.visibility ?: 0.0,
+            dewPoint = current.dewPoint ?: 0.0,
+            aqi = airQualityResp?.current?.usAqi
         )
 
         val hourly = forecast.hourly?.let { h ->
@@ -73,7 +80,8 @@ class WeatherRepository {
                     humidity = h.humidity.getOrElse(i) { 0 },
                     windSpeed = h.windSpeed.getOrElse(i) { 0.0 },
                     cloudCover = h.cloudCover.getOrElse(i) { 0 },
-                    visibilityMeters = h.visibility.getOrElse(i) { 0.0 }
+                    visibilityMeters = h.visibility.getOrElse(i) { 0.0 },
+                    dewPoint = h.dewPoint.getOrElse(i) { 0.0 }
                 )
             }
         } ?: emptyList()

@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,31 +60,71 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun FossyWeatherRoot(viewModel: WeatherViewModel) {
-    val permissionsState = rememberMultiplePermissionsState(
+    val locationPermissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
     )
 
-    LaunchedEffect(permissionsState.allPermissionsGranted) {
-        if (permissionsState.allPermissionsGranted) {
+    val notifPermissionState = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        rememberMultiplePermissionsState(permissions = listOf(Manifest.permission.POST_NOTIFICATIONS))
+    } else null
+
+    val notifRefusalCount by viewModel.notifRefusalCount.collectAsState()
+    val hasShownWelcome by viewModel.hasShownWelcomeNotification.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
+        if (locationPermissionsState.allPermissionsGranted) {
             viewModel.loadWeatherFromDeviceLocation()
-        } else if (permissionsState.permissions.any { it.status.shouldShowRationale }) {
+            
+            if (!hasShownWelcome) {
+                NotificationHelper.showTestNotification(context)
+                viewModel.markWelcomeNotificationShown()
+            }
+        } else if (locationPermissionsState.permissions.any { it.status.shouldShowRationale }) {
             viewModel.onPermissionDenied()
         } else {
-            // First launch: proactively ask.
-            permissionsState.launchMultiplePermissionRequest()
+            locationPermissionsState.launchMultiplePermissionRequest()
+        }
+    }
+
+    LaunchedEffect(notifPermissionState?.allPermissionsGranted) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (notifPermissionState != null && !notifPermissionState.allPermissionsGranted && notifRefusalCount < 2) {
+                notifPermissionState.launchMultiplePermissionRequest()
+                
+                // Note: we can't accurately detect "denied" immediately after launchMultiplePermissionRequest
+                // because it's asynchronous. The next time the app starts, the effect will run again
+                // if it's still not granted.
+            }
+        }
+    }
+
+    // Helper to increment refusal if it was just denied
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        val showRationale = notifPermissionState?.permissions?.any { it.status.shouldShowRationale } == true
+        DisposableEffect(showRationale) {
+            if (showRationale) {
+                viewModel.incrementNotifRefusalCount()
+            }
+            onDispose {}
         }
     }
 
     FossyWeatherNavGraph(
         viewModel = viewModel,
         onRequestLocationPermission = {
-            if (permissionsState.allPermissionsGranted) {
+            if (locationPermissionsState.allPermissionsGranted) {
                 viewModel.loadWeatherFromDeviceLocation()
             } else {
-                permissionsState.launchMultiplePermissionRequest()
+                locationPermissionsState.launchMultiplePermissionRequest()
+            }
+        },
+        onRequestNotificationPermission = {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                notifPermissionState?.launchMultiplePermissionRequest()
             }
         }
     )

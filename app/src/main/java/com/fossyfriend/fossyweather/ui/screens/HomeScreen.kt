@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.fossyfriend.fossyweather.data.prefs.TempUnit
@@ -64,6 +65,7 @@ fun HomeScreen(
     var showSearch by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -104,8 +106,9 @@ fun HomeScreen(
         }
     ) {
         Scaffold(
+            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
-                TopAppBar(
+                LargeTopAppBar(
                     title = { Text("FossyWeather") },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
@@ -119,7 +122,8 @@ fun HomeScreen(
                         IconButton(onClick = onOpenSettings) {
                             Icon(Icons.Filled.Settings, contentDescription = "Settings")
                         }
-                    }
+                    },
+                    scrollBehavior = scrollBehavior
                 )
             }
         ) { padding ->
@@ -298,7 +302,7 @@ private fun WeatherContent(
                 }
             }
             item(key = "map_button") {
-                AnimatedSection(visible = visibleState.targetState, delay = 100) {
+                AnimatedSection(visible = visibleState.targetState, delay = 50) {
                     OutlinedButton(onClick = onOpenMap, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Filled.Map, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
@@ -306,27 +310,9 @@ private fun WeatherContent(
                     }
                 }
             }
-            item(key = "hourly") {
-                AnimatedSection(visible = visibleState.targetState, delay = 200) {
-                    HourlyForecastRow(bundle.hourly, state.tempUnit, onHourClick = { hour ->
-                        val index = bundle.hourly.indexOf(hour)
-                        if (index != -1) onOpenHourDetail(index)
-                    })
-                }
-            }
-            item(key = "details") {
-                AnimatedSection(visible = visibleState.targetState, delay = 300) {
-                    DetailsGrid(bundle.current, onMetricClick = onOpenMetric)
-                }
-            }
-            item(key = "pressure") {
-                AnimatedSection(visible = visibleState.targetState, delay = 400) {
-                    PressureTrendCard(bundle.hourly, bundle.current.pressureMsl, onClick = onOpenPressure)
-                }
-            }
             if (showMoonCard) {
                 item(key = "moon") {
-                    AnimatedSection(visible = visibleState.targetState, delay = 500) {
+                    AnimatedSection(visible = visibleState.targetState, delay = 100) {
                         val today = bundle.daily.firstOrNull()
                         MoonPhaseCard(
                             moon = state.moonPhase,
@@ -337,15 +323,48 @@ private fun WeatherContent(
                     }
                 }
             }
+            item(key = "uv_aqi") {
+                AnimatedSection(visible = visibleState.targetState, delay = 150) {
+                    UvAqiGrid(bundle.current, onMetricClick = onOpenMetric)
+                }
+            }
+            item(key = "hourly") {
+                AnimatedSection(visible = visibleState.targetState, delay = 200) {
+                    HourlyForecastRow(bundle.hourly, state.tempUnit, onHourClick = { hour ->
+                        val index = bundle.hourly.indexOf(hour)
+                        if (index != -1) onOpenHourDetail(index)
+                    })
+                }
+            }
+            item(key = "wind") {
+                AnimatedSection(visible = visibleState.targetState, delay = 250) {
+                    WindCard(bundle.current)
+                }
+            }
+            item(key = "moisture") {
+                AnimatedSection(visible = visibleState.targetState, delay = 300) {
+                    MoistureGrid(bundle.current, onMetricClick = onOpenMetric)
+                }
+            }
+            item(key = "pressure") {
+                AnimatedSection(visible = visibleState.targetState, delay = 350) {
+                    PressureTrendCard(bundle.hourly, bundle.current.pressureMsl, onClick = onOpenPressure)
+                }
+            }
+            item(key = "visibility_cloud") {
+                AnimatedSection(visible = visibleState.targetState, delay = 400) {
+                    VisibilityCloudGrid(bundle.current, onMetricClick = onOpenMetric)
+                }
+            }
             if (showTideCard) {
                 item(key = "tide") {
-                    AnimatedSection(visible = visibleState.targetState, delay = 600) {
+                    AnimatedSection(visible = visibleState.targetState, delay = 450) {
                         TideCard(bundle.marine, bundle.isCoastal, onClick = onOpenTide)
                     }
                 }
             }
             item(key = "daily") {
-                AnimatedSection(visible = visibleState.targetState, delay = 700) {
+                AnimatedSection(visible = visibleState.targetState, delay = 500) {
                     DailyForecastList(bundle.daily, state.tempUnit, onDayClick = { day ->
                         val index = bundle.daily.indexOf(day)
                         if (index != -1) onOpenDayDetail(index)

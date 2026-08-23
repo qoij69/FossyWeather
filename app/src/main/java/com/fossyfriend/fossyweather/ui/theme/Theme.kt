@@ -47,6 +47,7 @@ fun FossyWeatherTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = FossyWeatherTypography,
+        shapes = FossyWeatherShapes,
         content = content
     )
 }

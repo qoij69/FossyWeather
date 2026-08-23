@@ -15,7 +15,9 @@ data class CurrentWeather(
     val windDirection: Int,
     val windGusts: Double,
     val uvIndex: Double,
-    val visibilityMeters: Double
+    val visibilityMeters: Double,
+    val dewPoint: Double,
+    val aqi: Int? = null
 )
 
 data class HourForecast(
@@ -28,7 +30,8 @@ data class HourForecast(
     val humidity: Int,
     val windSpeed: Double,
     val cloudCover: Int,
-    val visibilityMeters: Double
+    val visibilityMeters: Double,
+    val dewPoint: Double
 )
 
 data class DayForecast(
