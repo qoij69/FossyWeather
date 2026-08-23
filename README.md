@@ -89,7 +89,7 @@ FossyWeather follows modern Android architecture best practices (**MVVM + Clean 
    Open the root directory in Android Studio (Ladybug / Hedgehog or newer recommended).
 
 3. **Build & Run:**
-   No API keys required! Simply sync Gradle and click **Run** (`Shift + F10`) on your device or emulator running Android 8.0 (API 26) or higher.
+   No API keys required! Simply sync Gradle and click **Run** (`Shift + F10`) on your device or emulator running Android 12 (API 31) or higher.
 
 ---
 
