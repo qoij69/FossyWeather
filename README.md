@@ -77,7 +77,7 @@ FossyWeather follows modern Android architecture best practices (**MVVM + Clean 
 
 ---
 
-## 📥 Installation & Setup
+## 📥 How to Compile
 
 1. **Clone the repository:**
    ```bash
