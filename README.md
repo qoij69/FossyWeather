@@ -91,6 +91,8 @@ FossyWeather follows modern Android architecture best practices (**MVVM + Clean 
 3. **Build & Run:**
    No API keys required! Simply sync Gradle and click **Run** (`Shift + F10`) on your device or emulator running Android 12 (API 31) or higher.
 
+   Or Download Precompiled From [Releases](https://github.com/qoij69/FossyWeather/releases) 
+
 ---
 
 ## 🤝 Contributing
