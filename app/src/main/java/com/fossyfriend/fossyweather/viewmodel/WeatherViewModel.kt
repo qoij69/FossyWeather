@@ -17,6 +17,8 @@ import com.fossyfriend.fossyweather.domain.PlaceResult
 import com.fossyfriend.fossyweather.domain.WeatherBundle
 import com.fossyfriend.fossyweather.widget.CurrentWeatherWidget
 import com.fossyfriend.fossyweather.widget.ForecastWidget
+import com.fossyfriend.fossyweather.util.GitHubRelease
+import com.fossyfriend.fossyweather.util.UpdateChecker
 import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -78,6 +80,34 @@ class WeatherViewModel(application: Application) : AndroidViewModel(application)
     val widgetShowVisibility: StateFlow<Boolean> = prefs.widgetShowVisibility.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val widgetShowPressure: StateFlow<Boolean> = prefs.widgetShowPressure.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val widgetForecastDays: StateFlow<Int> = prefs.widgetForecastDays.stateIn(viewModelScope, SharingStarted.Eagerly, 3)
+
+    private val _updateStatus = MutableStateFlow<GitHubRelease?>(null)
+    val updateStatus: StateFlow<GitHubRelease?> = _updateStatus.asStateFlow()
+
+    private val _isCheckingUpdates = MutableStateFlow(false)
+    val isCheckingUpdates: StateFlow<Boolean> = _isCheckingUpdates.asStateFlow()
+
+    private val _lastUpdateCheckResult = MutableStateFlow<String?>(null)
+    val lastUpdateCheckResult: StateFlow<String?> = _lastUpdateCheckResult.asStateFlow()
+
+    fun checkForUpdates(currentVersion: String) {
+        viewModelScope.launch {
+            _isCheckingUpdates.value = true
+            _lastUpdateCheckResult.value = null
+            val release = UpdateChecker.checkForUpdates(currentVersion)
+            _updateStatus.value = release
+            _lastUpdateCheckResult.value = if (release != null) {
+                "New version available: ${release.tagName}"
+            } else {
+                "You are using the latest version"
+            }
+            _isCheckingUpdates.value = false
+        }
+    }
+    
+    fun clearUpdateCheckResult() {
+        _lastUpdateCheckResult.value = null
+    }
 
     fun loadWeatherFromDeviceLocation() {
         viewModelScope.launch {

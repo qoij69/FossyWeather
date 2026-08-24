@@ -1,8 +1,11 @@
 package com.fossyfriend.fossyweather.ui.nav
 
+import androidx.compose.animation.core.EaseOutQuart
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
@@ -48,13 +51,25 @@ private object Routes {
     const val DETAIL_CURRENT = "detail_current"
     const val DETAIL_HOURLY = "detail_hourly/{hourIndex}"
     const val DETAIL_DAILY = "detail_daily/{dayIndex}"
+    const val HERO_OVERLAY = "hero_overlay"
 }
 
-private const val ANIM_DURATION = 320
-private val enterAnim = fadeIn(tween(ANIM_DURATION)) + slideInHorizontally(tween(ANIM_DURATION)) { it / 6 }
-private val exitAnim = fadeOut(tween(ANIM_DURATION)) + slideOutHorizontally(tween(ANIM_DURATION)) { -it / 6 }
-private val popEnterAnim = fadeIn(tween(ANIM_DURATION)) + slideInHorizontally(tween(ANIM_DURATION)) { -it / 6 }
-private val popExitAnim = fadeOut(tween(ANIM_DURATION)) + slideOutHorizontally(tween(ANIM_DURATION)) { it / 6 }
+private const val ANIM_DURATION = 500
+private val enterAnim = fadeIn(tween(ANIM_DURATION, easing = EaseOutQuart)) + 
+    slideInHorizontally(tween(ANIM_DURATION, easing = EaseOutQuart)) { it / 4 } +
+    scaleIn(tween(ANIM_DURATION, easing = EaseOutQuart), initialScale = 0.95f)
+
+private val exitAnim = fadeOut(tween(ANIM_DURATION, easing = EaseOutQuart)) + 
+    slideOutHorizontally(tween(ANIM_DURATION, easing = EaseOutQuart)) { -it / 4 } +
+    scaleOut(tween(ANIM_DURATION, easing = EaseOutQuart), targetScale = 1.05f)
+
+private val popEnterAnim = fadeIn(tween(ANIM_DURATION, easing = EaseOutQuart)) + 
+    slideInHorizontally(tween(ANIM_DURATION, easing = EaseOutQuart)) { -it / 4 } +
+    scaleIn(tween(ANIM_DURATION, easing = EaseOutQuart), initialScale = 1.05f)
+
+private val popExitAnim = fadeOut(tween(ANIM_DURATION, easing = EaseOutQuart)) + 
+    slideOutHorizontally(tween(ANIM_DURATION, easing = EaseOutQuart)) { it / 4 } +
+    scaleOut(tween(ANIM_DURATION, easing = EaseOutQuart), targetScale = 0.95f)
 
 @Composable
 fun FossyWeatherNavGraph(
@@ -98,8 +113,20 @@ fun FossyWeatherNavGraph(
                 onOpenCurrentDetail = { navController.navigate(Routes.DETAIL_CURRENT) },
                 onOpenHourDetail = { index -> navController.navigate("detail_hourly/$index") },
                 onOpenDayDetail = { index -> navController.navigate("detail_daily/$index") },
+                onOpenHeroOverlay = { navController.navigate(Routes.HERO_OVERLAY) },
                 onRequestLocationPermission = onRequestLocationPermission
             )
+        }
+        composable(Routes.HERO_OVERLAY) {
+            val bundle = lastBundle
+            val uiStateVal = uiState
+            if (bundle != null && uiStateVal is UiState.Success) {
+                com.fossyfriend.fossyweather.ui.screens.HeroWeatherOverlay(
+                    bundle = bundle,
+                    tempUnit = uiStateVal.tempUnit,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
         composable(Routes.DETAIL_CURRENT) {
             val bundle = lastBundle

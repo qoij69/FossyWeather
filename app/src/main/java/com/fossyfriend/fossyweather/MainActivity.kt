@@ -12,6 +12,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.fossyfriend.fossyweather.data.prefs.ThemeMode
@@ -74,6 +75,18 @@ private fun FossyWeatherRoot(viewModel: WeatherViewModel) {
     val notifRefusalCount by viewModel.notifRefusalCount.collectAsState()
     val hasShownWelcome by viewModel.hasShownWelcomeNotification.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    val currentVersion = remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "0.0.0"
+        } catch (e: Exception) {
+            "0.0.0"
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.checkForUpdates(currentVersion)
+    }
 
     LaunchedEffect(locationPermissionsState.allPermissionsGranted) {
         if (locationPermissionsState.allPermissionsGranted) {

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.fossyfriend.fossyweather.data.prefs.*
 import com.fossyfriend.fossyweather.util.ShareUtils
+import com.fossyfriend.fossyweather.util.UpdateChecker
 import com.fossyfriend.fossyweather.viewmodel.WeatherViewModel
 import kotlinx.coroutines.launch
 
@@ -95,7 +96,7 @@ fun SettingsScreen(
                     2 -> DisplayTab(viewModel)
                     3 -> WidgetsTab(viewModel)
                     4 -> NotificationsTab(viewModel, onRequestNotificationPermission)
-                    5 -> AboutTab()
+                    5 -> AboutTab(viewModel)
                 }
             }
         }
@@ -338,17 +339,84 @@ private fun NotificationsTab(
 }
 
 @Composable
-private fun AboutTab() {
+private fun AboutTab(viewModel: WeatherViewModel) {
     val uriHandler = LocalUriHandler.current
     val context = androidx.compose.ui.platform.LocalContext.current
+    val updateStatus by viewModel.updateStatus.collectAsState()
+    val isCheckingUpdates by viewModel.isCheckingUpdates.collectAsState()
+    val checkResult by viewModel.lastUpdateCheckResult.collectAsState()
+    
+    val versionName = remember {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            packageInfo.versionName ?: "Unknown"
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
+
+    LaunchedEffect(checkResult) {
+        if (checkResult != null) {
+            // Show a snackbar or toast
+            // For now, it's displayed in the UI below the button
+        }
+    }
+
     SettingsList {
         item {
-            SettingsSection(title = "Support & Share") {
+            SettingsSection(title = "Updates & Support") {
+                if (updateStatus != null) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("New Version Available: ${updateStatus?.tagName}", fontWeight = FontWeight.Bold)
+                            Text(updateStatus?.name ?: "Release notes available on GitHub", style = MaterialTheme.typography.bodySmall)
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = { UpdateChecker.openReleasePage(context, updateStatus!!.htmlUrl) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Download Update")
+                            }
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = { viewModel.checkForUpdates(versionName) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = !isCheckingUpdates
+                ) {
+                    if (isCheckingUpdates) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        Spacer(Modifier.width(12.dp))
+                        Text("Checking...")
+                    } else {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Check for updates")
+                    }
+                }
+                
+                if (checkResult != null && updateStatus == null) {
+                    Text(
+                        text = checkResult!!,
+                        modifier = Modifier.padding(top = 8.dp, start = 4.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                
+                Spacer(Modifier.height(8.dp))
+                
                 Button(
                     onClick = { ShareUtils.shareApk(context) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
                 ) {
                     Icon(Icons.Filled.Share, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
@@ -408,6 +476,16 @@ private fun AboutTab() {
                 CreditLink(Icons.Filled.Code, "GitHub", "View source code") { uriHandler.openUri("https://github.com/qoij69/FossyWeather") }
                 CreditLink(Icons.Filled.MusicNote, "TikTok", "@techbyqoij69") { uriHandler.openUri("https://www.tiktok.com/@techbyqoij69") }
                 CreditLink(Icons.Filled.PlayArrow, "YouTube", "@qoij69") { uriHandler.openUri("https://www.youtube.com/@qoij69") }
+            }
+        }
+        item {
+            // Version Info at the very bottom
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Version $versionName", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("© 2026 FossyFriend", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
             }
         }
     }

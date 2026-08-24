@@ -2,26 +2,31 @@ package com.fossyfriend.fossyweather.ui.screens
 
 import android.content.Intent
 import androidx.compose.animation.*
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
 import com.fossyfriend.fossyweather.data.prefs.TempUnit
 import com.fossyfriend.fossyweather.domain.DayForecast
 import com.fossyfriend.fossyweather.domain.HourForecast
@@ -35,11 +40,13 @@ import com.fossyfriend.fossyweather.util.isoToHourLabel
 import com.fossyfriend.fossyweather.util.isoToTimeLabel
 import com.fossyfriend.fossyweather.viewmodel.UiState
 import com.fossyfriend.fossyweather.viewmodel.WeatherViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +62,7 @@ fun HomeScreen(
     onOpenCurrentDetail: () -> Unit,
     onOpenHourDetail: (Int) -> Unit,
     onOpenDayDetail: (Int) -> Unit,
+    onOpenHeroOverlay: () -> Unit,
     onRequestLocationPermission: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -67,103 +75,143 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
+    val pullToRefreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            viewModel.loadWeatherFromDeviceLocation()
+            delay(1500)
+            isRefreshing = false
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Locations", style = MaterialTheme.typography.titleLarge)
-                    IconButton(onClick = { 
-                        showSearch = true
-                        scope.launch { drawerState.close() }
-                    }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add location")
+                Column(Modifier.fillMaxHeight()) {
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Locations", style = MaterialTheme.typography.titleLarge)
+                        IconButton(onClick = { 
+                            showSearch = true
+                            scope.launch { drawerState.close() }
+                        }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add location")
+                        }
                     }
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(savedLocations, key = { it.id }) { place ->
-                        LocationDrawerItem(
-                            place = place,
-                            isSelected = selectedLocation?.id == place.id,
-                            onClick = {
-                                viewModel.loadWeather(place.latitude, place.longitude, place.displayName)
-                                scope.launch { drawerState.close() }
-                            },
-                            onDelete = { viewModel.removeLocation(place.id) }
-                        )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    
+                    LazyColumn(modifier = Modifier.weight(1f)) {
+                        items(savedLocations, key = { it.id }) { place ->
+                            LocationDrawerItem(
+                                place = place,
+                                isSelected = selectedLocation?.id == place.id,
+                                onClick = {
+                                    viewModel.loadWeather(place.latitude, place.longitude, place.displayName)
+                                    scope.launch { drawerState.close() }
+                                },
+                                onDelete = { viewModel.removeLocation(place.id) }
+                            )
+                        }
                     }
+                    
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    NavigationDrawerItem(
+                        label = { Text("Settings") },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                        selected = false,
+                        onClick = {
+                            onOpenSettings()
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                    Spacer(Modifier.height(12.dp))
                 }
             }
         }
     ) {
-        Scaffold(
-            modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-            topBar = {
-                LargeTopAppBar(
-                    title = { Text("FossyWeather") },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+        PullToRefreshBox(
+            state = pullToRefreshState,
+            isRefreshing = isRefreshing,
+            onRefresh = { isRefreshing = true },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Scaffold(
+                modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                topBar = {
+                    LargeTopAppBar(
+                        title = { Text("FossyWeather") },
+                        navigationIcon = {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { showSearch = true }) {
+                                Icon(Icons.Default.Search, contentDescription = "Search location")
+                            }
+                            IconButton(onClick = onRequestLocationPermission) {
+                                Icon(Icons.Filled.MyLocation, contentDescription = "Use my location")
+                            }
+                            IconButton(onClick = onOpenHeroOverlay) {
+                                Icon(Icons.Default.AutoAwesome, contentDescription = "Hero View", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        },
+                        scrollBehavior = scrollBehavior
+                    )
+                }
+            ) { padding ->
+                Box(Modifier.padding(padding).fillMaxSize()) {
+                    AnimatedContent(
+                        targetState = uiState,
+                        transitionSpec = {
+                            (fadeIn(tween(500, easing = EaseOutQuart)) + scaleIn(initialScale = 0.92f))
+                                .togetherWith(fadeOut(tween(400)) + scaleOut(targetScale = 1.08f))
+                        },
+                        label = "home_state"
+                    ) { state ->
+                        when (state) {
+                            is UiState.Loading -> LoadingState()
+                            is UiState.NeedsPermission -> PermissionRationaleState(onRequestLocationPermission, onOpenSearch = { showSearch = true })
+                            is UiState.Error -> ErrorState(state.message, onRetry = onRequestLocationPermission, onOpenSearch = { showSearch = true })
+                            is UiState.Success -> {
+                                WeatherContent(
+                                    state = state,
+                                    showTideCard = showTideCard,
+                                    showMoonCard = showMoonCard,
+                                    onOpenMap = { onOpenMap(state.bundle) },
+                                    onOpenMetric = onOpenMetric,
+                                    onOpenPressure = onOpenPressure,
+                                    onOpenTide = onOpenTide,
+                                    onOpenMoon = onOpenMoon,
+                                    onOpenCurrentDetail = onOpenCurrentDetail,
+                                    onOpenHourDetail = onOpenHourDetail,
+                                    onOpenDayDetail = onOpenDayDetail,
+                                    onOpenHeroOverlay = onOpenHeroOverlay
+                                )
+                            }
                         }
-                    },
-                    actions = {
-                        IconButton(onClick = onRequestLocationPermission) {
-                            Icon(Icons.Filled.MyLocation, contentDescription = "Use my location")
-                        }
-                        IconButton(onClick = onOpenSettings) {
-                            Icon(Icons.Filled.Settings, contentDescription = "Settings")
-                        }
-                    },
-                    scrollBehavior = scrollBehavior
-                )
-            }
-        ) { padding ->
-            Box(Modifier.padding(padding).fillMaxSize()) {
-                AnimatedContent(
-                    targetState = uiState,
-                    transitionSpec = {
-                        fadeIn(tween(300)) togetherWith fadeOut(tween(300))
-                    },
-                    label = "home_state"
-                ) { state ->
-                    when (state) {
-                        is UiState.Loading -> LoadingState()
-                        is UiState.NeedsPermission -> PermissionRationaleState(onRequestLocationPermission, onOpenSearch = { showSearch = true })
-                        is UiState.Error -> ErrorState(state.message, onRetry = onRequestLocationPermission, onOpenSearch = { showSearch = true })
-                        is UiState.Success -> WeatherContent(
-                            state = state,
-                            showTideCard = showTideCard,
-                            showMoonCard = showMoonCard,
-                            onOpenMap = { onOpenMap(state.bundle) },
-                            onOpenMetric = onOpenMetric,
-                            onOpenPressure = onOpenPressure,
-                            onOpenTide = onOpenTide,
-                            onOpenMoon = onOpenMoon,
-                            onOpenCurrentDetail = onOpenCurrentDetail,
-                            onOpenHourDetail = onOpenHourDetail,
-                            onOpenDayDetail = onOpenDayDetail
+                    }
+
+                    if (showSearch) {
+                        LocationSearchSheet(
+                            viewModel = viewModel,
+                            onDismiss = { showSearch = false },
+                            onPlaceSelected = { place ->
+                                viewModel.loadWeather(place.latitude, place.longitude, place.displayName)
+                                showSearch = false
+                            }
                         )
                     }
-                }
-
-                if (showSearch) {
-                    LocationSearchSheet(
-                        viewModel = viewModel,
-                        onDismiss = { showSearch = false },
-                        onPlaceSelected = { place ->
-                            viewModel.loadWeather(place.latitude, place.longitude, place.displayName)
-                            showSearch = false
-                        }
-                    )
                 }
             }
         }
@@ -184,7 +232,7 @@ private fun LocationDrawerItem(
         confirmValueChange = {
             if (it == SwipeToDismissBoxValue.StartToEnd) {
                 showDeleteDialog = true
-                false // Don't dismiss yet, wait for dialog
+                false 
             } else false
         }
     )
@@ -259,19 +307,21 @@ private fun WeatherContent(
     onOpenMoon: () -> Unit,
     onOpenCurrentDetail: () -> Unit,
     onOpenHourDetail: (Int) -> Unit,
-    onOpenDayDetail: (Int) -> Unit
+    onOpenDayDetail: (Int) -> Unit,
+    onOpenHeroOverlay: () -> Unit
 ) {
     val bundle = state.bundle
     val listState = rememberLazyListState()
 
-    // One-shot entrance animation the first time real content appears.
     val visibleState = remember {
         MutableTransitionState(false).apply { targetState = true }
     }
 
     AnimatedVisibility(
         visibleState = visibleState,
-        enter = fadeIn(tween(450)) + slideInVertically(tween(450)) { it / 8 }
+        enter = fadeIn(tween(800, easing = EaseOutQuart)) + 
+                slideInVertically(tween(800, easing = EaseOutQuart)) { it / 6 } +
+                scaleIn(tween(800, easing = EaseOutQuart), initialScale = 0.9f)
     ) {
         LazyColumn(
             state = listState,
@@ -396,8 +446,10 @@ private fun AnimatedSection(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(tween(400, delayMillis = delay)) + 
-                slideInVertically(tween(400, delayMillis = delay)) { it / 10 }
+        enter = fadeIn(tween(800, delayMillis = delay, easing = EaseOutQuart)) + 
+                slideInVertically(tween(800, delayMillis = delay, easing = EaseOutQuart)) { it / 4 } +
+                scaleIn(tween(800, delayMillis = delay, easing = EaseOutQuart), initialScale = 0.85f),
+        exit = fadeOut(tween(400)) + scaleOut(targetScale = 0.9f)
     ) {
         content()
     }
