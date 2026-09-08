@@ -81,7 +81,7 @@ FossyWeather follows modern Android architecture best practices (**MVVM + Clean 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/FossyWeather.git
+   git clone https://github.com/qoij69/FossyWeather.git
    cd FossyWeather
    ```
 
